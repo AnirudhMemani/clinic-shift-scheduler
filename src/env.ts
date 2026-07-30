@@ -20,6 +20,9 @@ export const env = createEnv({
       protocol: /^postgres(ql)?$/,
       error: "DATABASE_URL must be a valid Postgres connection string",
     }),
+    // Secret used by Auth.js to sign/encrypt the session JWT. Generate with
+    // `openssl rand -base64 33`. Required in every environment.
+    AUTH_SECRET: z.string().min(1, "AUTH_SECRET is required"),
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),

@@ -86,8 +86,11 @@ export const shifts = pgTable(
   "shifts",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    startsAt: timestamp("starts_at").notNull(),
-    endsAt: timestamp("ends_at").notNull(),
+    // Wall-clock clinic-local times. `mode: "string"` returns/accepts the raw
+    // "YYYY-MM-DD HH:MM:SS" text so JS Date never silently converts timezones.
+    // SQL ordering/overlap comparisons still work directly on the column.
+    startsAt: timestamp("starts_at", { mode: "string" }).notNull(),
+    endsAt: timestamp("ends_at", { mode: "string" }).notNull(),
     notes: text("notes"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at")

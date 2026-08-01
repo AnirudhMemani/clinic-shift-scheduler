@@ -3,7 +3,7 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { buildImportPlan } from "./plan";
+import { buildImportPlan, buildSingleEntityPlan } from "./plan";
 
 /**
  * End-to-end (but DB-free) check against the real dirty CSVs shipped in Project/.
@@ -36,6 +36,30 @@ describe("staff import plan (real staff.csv)", () => {
   it("emails are unique among accepted staff", () => {
     const emails = plan.staff.accepted.map((s) => s.email);
     expect(new Set(emails).size).toBe(emails.length);
+  });
+});
+
+describe("buildSingleEntityPlan (manager upload auto-detect)", () => {
+  it("detects a staff CSV by its headers", () => {
+    const r = buildSingleEntityPlan(
+      "staff_id,full_name,role,email\n1,Ada Lovelace,Doctor,ada@clinic.test",
+    );
+    expect(r?.kind).toBe("staff");
+    expect(r?.plan.staff.accepted).toHaveLength(1);
+    expect(r?.plan.shifts.accepted).toHaveLength(0);
+  });
+
+  it("detects a shifts CSV by its headers", () => {
+    const r = buildSingleEntityPlan(
+      "shift_id,date,start_time,end_time,requirements\n9,2026-08-28,09:00,17:00,nurses=1",
+    );
+    expect(r?.kind).toBe("shifts");
+    expect(r?.plan.shifts.accepted).toHaveLength(1);
+    expect(r?.plan.staff.accepted).toHaveLength(0);
+  });
+
+  it("returns null for an unrecognized CSV", () => {
+    expect(buildSingleEntityPlan("foo,bar\n1,2")).toBeNull();
   });
 });
 

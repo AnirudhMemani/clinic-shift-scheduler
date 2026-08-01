@@ -120,3 +120,47 @@ export function buildImportPlan(
     shifts: buildShiftPlan(parseCsv<RawShiftRow>(shiftsCsv)),
   };
 }
+
+const emptyEntityPlan = <T>(): EntityPlan<T> => ({
+  accepted: [],
+  issues: [],
+  counts: { accepted: 0, repaired: 0, merged: 0, rejected: 0 },
+});
+
+export type CsvKind = "staff" | "shifts";
+
+/**
+ * Build a plan from a single uploaded CSV, auto-detecting whether it's a staff
+ * or shifts export from its headers. Returns null if neither is recognized.
+ * (The other entity is left empty so the same `runImport` handles it.)
+ */
+export function buildSingleEntityPlan(
+  csvText: string,
+): { kind: CsvKind; plan: ImportPlan } | null {
+  const parsed = Papa.parse<RawStaffRow & RawShiftRow>(csvText.trim(), {
+    header: true,
+    skipEmptyLines: true,
+    transformHeader: (h) => h.trim(),
+  });
+  const fields = parsed.meta.fields ?? [];
+
+  if (fields.includes("staff_id") || fields.includes("email")) {
+    return {
+      kind: "staff",
+      plan: {
+        staff: buildStaffPlan(parsed.data as RawStaffRow[]),
+        shifts: emptyEntityPlan(),
+      },
+    };
+  }
+  if (fields.includes("shift_id") || fields.includes("requirements")) {
+    return {
+      kind: "shifts",
+      plan: {
+        staff: emptyEntityPlan(),
+        shifts: buildShiftPlan(parsed.data as RawShiftRow[]),
+      },
+    };
+  }
+  return null;
+}

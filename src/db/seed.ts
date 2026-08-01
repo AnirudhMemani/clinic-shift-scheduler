@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { hashPassword } from "@/auth/password";
 import { db } from "@/db";
 import { users } from "@/db/schema";
+import { DEFAULT_IMPORT_PASSWORD } from "@/features/import/constants";
 import { buildImportPlan } from "@/features/import/plan";
 import { runImport } from "@/features/import/service";
 
@@ -19,12 +20,10 @@ import { runImport } from "@/features/import/service";
  * All seeded accounts share one password for easy grading (documented in README).
  */
 
-const DEFAULT_PASSWORD = "Clinic123!";
-
 const MANAGERS = [{ email: "manager@clinic.test", name: "Morgan Bailey" }];
 
 async function main() {
-  const passwordHash = await hashPassword(DEFAULT_PASSWORD);
+  const passwordHash = await hashPassword(DEFAULT_IMPORT_PASSWORD);
 
   // 1. Managers (not present in staff.csv).
   await db
@@ -63,7 +62,7 @@ async function main() {
       `(${summary.shifts.merged} merged, ${summary.shifts.rejected} rejected)`,
   );
   console.log("\n  Login (all seeded accounts share one password):");
-  console.log(`    Password:      ${DEFAULT_PASSWORD}`);
+  console.log(`    Password:      ${DEFAULT_IMPORT_PASSWORD}`);
   console.log(`    Manager:       ${MANAGERS[0].email}`);
   console.log(`    Example staff: ${exampleStaff.join(", ")}`);
   console.log("\n  See the Import Report page for the full accepted/rejected breakdown.\n");

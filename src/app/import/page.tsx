@@ -1,5 +1,6 @@
 import { requireManager } from "@/auth/guards";
 import type { ImportIssue } from "@/db/schema";
+import { UploadForm } from "@/features/import/components/upload-form";
 import { getLatestImportBatch } from "@/features/import/service";
 
 export const dynamic = "force-dynamic";
@@ -62,6 +63,10 @@ export default async function ImportReportPage() {
   return (
     <main className="mx-auto max-w-3xl px-6 py-10">
       <h1 className="text-2xl font-semibold">Import Report</h1>
+
+      <div className="mt-6">
+        <UploadForm />
+      </div>
 
       {!batch ? (
         <p className="mt-6 rounded-lg border border-dashed border-black/15 px-6 py-16 text-center text-sm text-black/50 dark:border-white/20 dark:text-white/50">

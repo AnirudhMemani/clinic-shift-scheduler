@@ -3,6 +3,7 @@ import {
   check,
   index,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   text,
@@ -86,6 +87,9 @@ export const shifts = pgTable(
   "shifts",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // The source CSV's shift_id, when imported. Nullable (manually-created shifts
+    // have none) and unique so re-importing a CSV upserts instead of duplicating.
+    externalId: text("external_id").unique(),
     // Wall-clock clinic-local times. `mode: "string"` returns/accepts the raw
     // "YYYY-MM-DD HH:MM:SS" text so JS Date never silently converts timezones.
     // SQL ordering/overlap comparisons still work directly on the column.
@@ -197,6 +201,72 @@ export const claimsRelations = relations(claims, ({ one }) => ({
     relationName: "assigner",
   }),
 }));
+
+// ---------------------------------------------------------------------------
+// Import reporting
+// ---------------------------------------------------------------------------
+
+/** How an import was triggered. */
+export const importSourceEnum = pgEnum("import_source", ["seed", "upload"]);
+/** Which CSV a reported issue came from. */
+export const importEntityEnum = pgEnum("import_entity", ["staff", "shift"]);
+/** What was done with a non-cleanly-accepted row. */
+export const importActionEnum = pgEnum("import_action", [
+  "repaired",
+  "merged",
+  "rejected",
+]);
+
+type ImportCounts = {
+  accepted: number;
+  repaired: number;
+  merged: number;
+  rejected: number;
+};
+/** Accepted/merged/rejected tallies persisted with each import run. */
+export type ImportSummary = { staff: ImportCounts; shifts: ImportCounts };
+
+/** One import run (auto-seed or manager upload). */
+export const importBatches = pgTable("import_batches", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  source: importSourceEnum("source").notNull(),
+  filename: text("filename"),
+  summary: jsonb("summary").$type<ImportSummary>().notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+/**
+ * Every non-cleanly-accepted row from a batch — the raw row, what was wrong, and
+ * what we did — powering the Import Report page.
+ */
+export const importIssues = pgTable(
+  "import_issues",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    batchId: uuid("batch_id")
+      .notNull()
+      .references(() => importBatches.id, { onDelete: "cascade" }),
+    entity: importEntityEnum("entity").notNull(),
+    action: importActionEnum("action").notNull(),
+    raw: text("raw").notNull(),
+    reason: text("reason").notNull(),
+  },
+  (t) => [index("import_issues_batch_idx").on(t.batchId)],
+);
+
+export const importBatchesRelations = relations(importBatches, ({ many }) => ({
+  issues: many(importIssues),
+}));
+
+export const importIssuesRelations = relations(importIssues, ({ one }) => ({
+  batch: one(importBatches, {
+    fields: [importIssues.batchId],
+    references: [importBatches.id],
+  }),
+}));
+
+export type ImportBatch = typeof importBatches.$inferSelect;
+export type ImportIssue = typeof importIssues.$inferSelect;
 
 // ---------------------------------------------------------------------------
 // Inferred types

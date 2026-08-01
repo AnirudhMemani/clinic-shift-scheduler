@@ -69,7 +69,12 @@ export async function updateShiftAction(
   }
 
   revalidatePath("/shifts");
-  redirect("/shifts");
+  // If the new time forced anyone off, tell the manager on the list page.
+  redirect(
+    updated.releasedCount > 0
+      ? `/shifts?released=${updated.releasedCount}`
+      : "/shifts",
+  );
 }
 
 /** Row-level delete. Plain action (no form state needed). */

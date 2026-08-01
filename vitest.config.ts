@@ -11,5 +11,7 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["src/**/*.test.ts"],
+    // Integration tests hit a real database and run via `pnpm test:integration`.
+    exclude: ["**/node_modules/**", "src/**/*.integration.test.ts"],
   },
 });

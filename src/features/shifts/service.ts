@@ -2,6 +2,7 @@ import { asc, eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import { shiftRequirements, shifts } from "@/db/schema";
+import { releaseOverlappingClaims } from "@/features/claims/service";
 import { computeShiftInstants } from "@/lib/time";
 
 import {
@@ -14,10 +15,10 @@ import {
  * Shift service — the single place shift writes happen, each wrapped in a
  * transaction so a shift and its requirement rows are always consistent.
  *
- * NOTE: re-validating existing claims when a shift's time changes (releasing a
- * claimant who would now overlap another of their shifts) is added in
- * `feat/claiming`, alongside the shared validation engine and real claim data.
- * Until then, edits preserve claims and deletes cascade them (FK `onDelete`).
+ * On edit, existing claims are preserved (reducing a requirement just leaves the
+ * shift over-staffed) EXCEPT that a time change re-validates overlaps: any
+ * claimant who would now be double-booked is released inside the same
+ * transaction via `releaseOverlappingClaims`. Deletes cascade claims (FK).
  */
 
 /** Build requirement rows for the professions that need at least one person. */
@@ -52,8 +53,20 @@ export async function createShift(input: ShiftInput) {
   });
 }
 
-/** Update a shift and replace its requirement set. Returns null if not found. */
-export async function updateShift(shiftId: string, input: ShiftInput) {
+export type UpdateShiftResult = {
+  shift: typeof shifts.$inferSelect;
+  /** Number of claims released because the new time overlapped another shift. */
+  releasedCount: number;
+};
+
+/**
+ * Update a shift and replace its requirement set. Re-validates overlaps and
+ * releases any now-conflicting claims. Returns null if the shift is not found.
+ */
+export async function updateShift(
+  shiftId: string,
+  input: ShiftInput,
+): Promise<UpdateShiftResult | null> {
   const { startsAt, endsAt } = computeShiftInstants(
     input.date,
     input.startTime,
@@ -79,7 +92,15 @@ export async function updateShift(shiftId: string, input: ShiftInput) {
     if (rows.length > 0) {
       await tx.insert(shiftRequirements).values(rows);
     }
-    return shift;
+
+    // The new time may put a claimant in conflict with another of their shifts.
+    const released = await releaseOverlappingClaims(
+      tx,
+      shiftId,
+      startsAt,
+      endsAt,
+    );
+    return { shift, releasedCount: released.length };
   });
 }
 
@@ -92,10 +113,17 @@ export async function deleteShift(shiftId: string) {
   return deleted ?? null;
 }
 
-/** All shifts, earliest first, with their requirement rows. */
+/** Claimant columns exposed to the UI (never the password hash). */
+const claimantColumns = {
+  with: {
+    user: { columns: { id: true, name: true, profession: true } },
+  },
+} as const;
+
+/** All shifts, earliest first, with requirements and claimants. */
 export async function listShifts() {
   return db.query.shifts.findMany({
-    with: { requirements: true },
+    with: { requirements: true, claims: claimantColumns },
     orderBy: [asc(shifts.startsAt)],
   });
 }

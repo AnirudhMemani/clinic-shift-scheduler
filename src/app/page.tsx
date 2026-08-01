@@ -27,20 +27,14 @@ export default async function Home() {
         ) : null}
       </dl>
 
-      {user.role === "manager" ? (
-        <nav className="flex gap-3">
-          <Link
-            href="/shifts"
-            className="rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background transition-opacity hover:opacity-90"
-          >
-            Manage shifts
-          </Link>
-        </nav>
-      ) : (
-        <p className="text-sm text-black/50 dark:text-white/50">
-          Claiming and your schedule land in upcoming work.
-        </p>
-      )}
+      <nav className="flex gap-3">
+        <Link
+          href="/shifts"
+          className="rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background transition-opacity hover:opacity-90"
+        >
+          {user.role === "manager" ? "Manage shifts" : "Browse shifts"}
+        </Link>
+      </nav>
 
       <form
         action={async () => {

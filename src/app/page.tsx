@@ -27,13 +27,29 @@ export default async function Home() {
         ) : null}
       </dl>
 
-      <nav className="flex gap-3">
+      <nav className="flex flex-wrap gap-3">
         <Link
           href="/shifts"
           className="rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background transition-opacity hover:opacity-90"
         >
           {user.role === "manager" ? "Manage shifts" : "Browse shifts"}
         </Link>
+        {user.role === "manager" ? (
+          <>
+            <Link
+              href="/coverage"
+              className="rounded-md border border-black/15 px-4 py-2 text-sm font-medium transition-colors hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/10"
+            >
+              Coverage
+            </Link>
+            <Link
+              href="/import"
+              className="rounded-md border border-black/15 px-4 py-2 text-sm font-medium transition-colors hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/10"
+            >
+              Import report
+            </Link>
+          </>
+        ) : null}
       </nav>
 
       <form

@@ -71,6 +71,24 @@ export function splitInstant(instant: string): { date: string; time: string } {
 }
 
 /**
+ * ISO weekday of a "YYYY-MM-DD" date: Monday = 1 ... Sunday = 7. Computed via
+ * `Date.UTC` so it never depends on the host timezone.
+ */
+export function isoWeekday(date: string): number {
+  const [y, m, d] = date.split("-").map(Number);
+  const dow = new Date(Date.UTC(y, m - 1, d)).getUTCDay(); // 0=Sun … 6=Sat
+  return dow === 0 ? 7 : dow;
+}
+
+/**
+ * The Monday of the week containing `date` ("YYYY-MM-DD"), as a "YYYY-MM-DD"
+ * string. Weeks run Monday→Sunday, matching the coverage dashboard.
+ */
+export function startOfWeek(date: string): string {
+  return addDays(date, -(isoWeekday(date) - 1));
+}
+
+/**
  * Half-open interval overlap: true if [aStart, aEnd) and [bStart, bEnd) intersect.
  * Back-to-back shifts (one ends exactly when the next starts) do NOT overlap.
  * Operates on the "YYYY-MM-DD HH:MM:SS" strings, which sort chronologically.

@@ -1,4 +1,4 @@
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq, gte, lt, max, min } from "drizzle-orm";
 
 import { db } from "@/db";
 import { shiftRequirements, shifts } from "@/db/schema";
@@ -126,6 +126,40 @@ export async function listShifts() {
     with: { requirements: true, claims: claimantColumns },
     orderBy: [asc(shifts.startsAt)],
   });
+}
+
+/**
+ * Shifts starting within the half-open date window [startDate, endDateExclusive)
+ * — both "YYYY-MM-DD" — earliest first, with requirements and claimants. Backs
+ * the coverage dashboard's week view (`shifts_starts_at_idx` serves the scan).
+ */
+export async function listShiftsInRange(
+  startDate: string,
+  endDateExclusive: string,
+) {
+  return db.query.shifts.findMany({
+    where: and(
+      gte(shifts.startsAt, `${startDate} 00:00:00`),
+      lt(shifts.startsAt, `${endDateExclusive} 00:00:00`),
+    ),
+    with: { requirements: true, claims: claimantColumns },
+    orderBy: [asc(shifts.startsAt)],
+  });
+}
+
+/**
+ * The earliest and latest shift *dates* ("YYYY-MM-DD"), or null when there are no
+ * shifts. Lets the dashboard open on a week that actually has data.
+ */
+export async function getShiftDateBounds(): Promise<{
+  min: string;
+  max: string;
+} | null> {
+  const [row] = await db
+    .select({ min: min(shifts.startsAt), max: max(shifts.startsAt) })
+    .from(shifts);
+  if (!row?.min || !row.max) return null;
+  return { min: row.min.slice(0, 10), max: row.max.slice(0, 10) };
 }
 
 /** A single shift with its requirements, or undefined. */

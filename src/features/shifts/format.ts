@@ -22,6 +22,14 @@ export function formatShiftWhen(startsAt: string, endsAt: string): string {
   }`;
 }
 
+/** Just the time span, e.g. "22:00–06:00 (+1)" — for cards already grouped by day. */
+export function formatShiftTimeRange(startsAt: string, endsAt: string): string {
+  const start = splitInstant(startsAt);
+  const end = splitInstant(endsAt);
+  const overnight = end.date !== start.date;
+  return `${start.time}–${end.time}${overnight ? " (+1)" : ""}`;
+}
+
 const PROFESSION_LABEL: Record<Profession, string> = {
   doctor: "doctor",
   nurse: "nurse",

@@ -4,9 +4,11 @@ import {
   addDays,
   computeShiftInstants,
   intervalsOverlap,
+  isoWeekday,
   isValidCalendarDate,
   isValidTime,
   splitInstant,
+  startOfWeek,
 } from "./time";
 
 describe("isValidCalendarDate", () => {
@@ -100,6 +102,28 @@ describe("splitInstant", () => {
   it("handles the next-day end of an overnight shift", () => {
     const { endsAt } = computeShiftInstants("2026-08-29", "22:00", "06:00");
     expect(splitInstant(endsAt)).toEqual({ date: "2026-08-30", time: "06:00" });
+  });
+});
+
+describe("isoWeekday", () => {
+  it("maps Monday to 1 and Sunday to 7", () => {
+    expect(isoWeekday("2026-08-03")).toBe(1); // Monday
+    expect(isoWeekday("2026-08-08")).toBe(6); // Saturday
+    expect(isoWeekday("2026-08-09")).toBe(7); // Sunday
+  });
+});
+
+describe("startOfWeek", () => {
+  it("returns the Monday of the containing week", () => {
+    // The week of Mon 2026-08-03 … Sun 2026-08-09.
+    expect(startOfWeek("2026-08-03")).toBe("2026-08-03"); // Monday itself
+    expect(startOfWeek("2026-08-06")).toBe("2026-08-03"); // mid-week
+    expect(startOfWeek("2026-08-09")).toBe("2026-08-03"); // Sunday
+  });
+
+  it("crosses month boundaries", () => {
+    // Sun 2026-08-02 belongs to the week starting Mon 2026-07-27.
+    expect(startOfWeek("2026-08-02")).toBe("2026-07-27");
   });
 });
 

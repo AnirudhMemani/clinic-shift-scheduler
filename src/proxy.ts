@@ -8,6 +8,7 @@ import { authConfig } from "@/auth/config";
 export default NextAuth(authConfig).auth;
 
 export const config = {
-  // Run on everything except Next internals, the auth API, and static assets.
-  matcher: ["/((?!api/auth|_next/static|_next/image|favicon.ico).*)"],
+  // Run on everything except Next internals, the auth API, and static assets
+  // (including the metadata favicon at /icon.svg, which must load for guests).
+  matcher: ["/((?!api/auth|_next/static|_next/image|favicon.ico|icon.svg).*)"],
 };

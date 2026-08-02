@@ -6,7 +6,7 @@ Built for the fullstack take-home brief ([`Project/PROJECT_BRIEF.md`](Project/PR
 
 ## Live demo
 
-**URL:** _TODO: add deployed URL_
+**URL:** <https://clinic-shift-scheduler-ebon.vercel.app/>
 
 - Log in with the manager credentials below to see everything (shift management, assignment, the coverage dashboard, and the import report). The database is pre-seeded via the importer.
 - **Cold starts:** the Neon free-tier database scales to zero when idle, so the very first request after a period of inactivity may take a few extra seconds while the database wakes. Subsequent requests are fast.
